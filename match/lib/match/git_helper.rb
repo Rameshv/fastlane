@@ -1,6 +1,6 @@
 module Match
   class GitHelper
-    def self.clone(git_url, shallow_clone, manual_password: nil, skip_docs: false, branch: "master")
+    def self.clone(git_url, shallow_clone, manual_password: nil, skip_docs: false, branch: "master",encrypt: false)
       return @dir if @dir
 
       @dir = Dir.mktmpdir
@@ -27,7 +27,7 @@ module Match
       end
 
       copy_readme(@dir) unless skip_docs
-      Encrypt.new.decrypt_repo(path: @dir, git_url: git_url, manual_password: manual_password)
+      Encrypt.new.decrypt_repo(path: @dir, git_url: git_url, manual_password: manual_password) unless encrypt
 
       return @dir
     end
@@ -124,6 +124,19 @@ module Match
     def self.copy_readme(directory)
       template = File.read("#{Helper.gem_path('match')}/lib/assets/READMETemplate.md")
       File.write(File.join(directory, "README.md"), template)
+    end
+
+    def self.rename_certs_and_p12s(bundle_id,cert_id)
+      return unless @dir
+      commands = []
+      commands << "mv #{@dir}/certs/distribution/#{bundle_id}.cer #{@dir}/certs/distribution/#{cert_id}.cer"
+      commands << "mv #{@dir}/certs/distribution/#{bundle_id}.p12 #{@dir}/certs/distribution/#{cert_id}.p12"
+
+      commands.each do |command|
+        FastlaneCore::CommandExecutor.execute(command: command,
+                                              print_all: $verbose,
+                                              print_command: $verbose)
+      end
     end
   end
 end

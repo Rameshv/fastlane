@@ -85,6 +85,22 @@ module Match
         end
       end
 
+      command :encrypt do |c|
+        c.syntax = "match encrypt"
+        c.description = "Encrypts the existing repository, this is useful if you have lot of targets thats already live and you have your own repo of certificates and p12s"
+        c.action do |args,options|
+          params = FastlaneCore::Configuration.create(Match::Options.available_options, options.__hash__)
+          params.load_configuration_file("Matchfile")
+          Spaceship::Portal.login params[:username]
+          all_distribution_profiles = Spaceship.provisioning_profile.app_store.all
+          the_distribution_profile=all_distribution_profiles.find {|profile| profile.app.bundle_id == params[:app_identifier]}
+          certificate  = the_distribution_profile.certificates.first
+          encrypted_repo = Match::GitHelper.clone(params[:git_url], params[:shallow_clone], branch: params[:git_branch],encrypt: true)
+          Match::GitHelper.rename_certs_and_p12s(params[:app_identifier],certificate.id)
+          Match::GitHelper.commit_changes(encrypted_repo,"[fastlane] initial repo encryption",params[:git_url])
+        end
+      end
+
       command :decrypt do |c|
         c.syntax = "match decrypt"
         c.description = "Decrypts the repository and keeps it on the filesystem"
@@ -95,6 +111,7 @@ module Match
           UI.success "Repo is at: '#{decrypted_repo}'"
         end
       end
+
       command "nuke" do |c|
         # We have this empty command here, since otherwise the normal `match` command will be executed
         c.syntax = "match nuke"
