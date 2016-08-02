@@ -105,6 +105,12 @@ module Match
                                      env_name: "MATCH_SKIP_DOCS",
                                      description: "Skip generation of a README.md for the created git repository",
                                      is_string: false,
+                                     default_value: false),
+         FastlaneCore::ConfigItem.new(key: :use_existing,
+                                     short_option: "-z",
+                                     env_name: "MATCH_USE_EXISTING_PROFILES",
+                                     description: "Use existing provisioning profiles with the newly generated certificates",
+                                     is_string: false,
                                      default_value: false)
       ]
     end

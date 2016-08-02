@@ -17,10 +17,39 @@ module Match
       cert_id = certificate(params: params)
       spaceship.certificate_exists(params, cert_id) if spaceship
 
+      selected_profile = nil
       # Provisioning Profile
-      uuid = profile(params: params,
+      if params[:use_existing]
+        UI.important "test"
+        type_map = {'development' => 'iOS Development','adhoc' => 'iOS Distribution', 'appstore' => 'iOS Distribution'}
+        distribution_map = {'development' => 'limited','adhoc' => 'adhoc', 'appstore' => 'store'}
+        all_profiles = Spaceship.provisioning_profile.all
+        selected_profile = all_profiles.find do |pfile| 
+          UI.important type_map[params[:type]]
+          UI.important distribution_map[params[:type]]
+          pfile.app.bundle_id == params[:app_identifier] && pfile.type == type_map[params[:type]] && pfile.distribution_method == distribution_map[params[:type]]
+        end
+      end
+
+      if selected_profile
+        puts "selected_profile :: #{selected_profile.name}"
+        certificate = Spaceship.certificate.all.find {|cert| cert.id == cert_id }
+        selected_profile.certificates = [certificate]
+        selected_profile = selected_profile.update!
+        output_path = File.join(params[:workspace], "profiles", params[:type].to_s,"#{Match::Generator.profile_type_name(params[:type].to_sym)}_#{params[:app_identifier]}.mobileprovision")
+        puts "output_path :: #{output_path}"
+        require 'fileutils'
+        dirpath = File.dirname(output_path)
+        FileUtils::mkdir_p dirpath
+        profile_data = selected_profile.download
+        File.open(output_path, 'w') { |file| file.write(profile_data) }
+        self.changes_to_commit = true
+      else
+        uuid = profile(params: params,
                      certificate_id: cert_id)
-      spaceship.profile_exists(params, uuid) if spaceship
+        spaceship.profile_exists(params, uuid) if spaceship
+      end
+        
 
       # Done
       if self.changes_to_commit and !params[:readonly]
