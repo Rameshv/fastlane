@@ -35,6 +35,7 @@ module Match
         puts "selected_profile :: #{selected_profile.name}"
         certificate = Spaceship.certificate.all.find {|cert| cert.id == cert_id }
         selected_profile.certificates = [certificate]
+        selected_profile.name = "match #{Match::Generator.profile_type_name(params[:type].to_sym)} #{params[:app_identifier]}"
         selected_profile = selected_profile.update!
         output_path = File.join(params[:workspace], "profiles", params[:type].to_s,"#{Match::Generator.profile_type_name(params[:type].to_sym)}_#{params[:app_identifier]}.mobileprovision")
         puts "output_path :: #{output_path}"
